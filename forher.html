@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lush Sunflower Bouquet for Jajang 🌻</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #fcfaf2; /* Soft cream paper texture background */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Georgia', serif;
+        }
+        canvas {
+            filter: drop-shadow(0px 30px 60px rgba(74, 44, 42, 0.15));
+            max-width: 95vw;
+            max-height: 85vh;
+            display: block;
+        }
+        h1 {
+            color: #4a2c2a;
+            margin-top: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 2.5s cubic-bezier(0.19, 1, 0.22, 1);
+            font-style: italic;
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            text-align: center;
+            z-index: 10;
+        }
+        h1.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<h1 id="msg">Virtual bouquet for Jajang</h1>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const msg = document.getElementById('msg');
+
+// High resolution internal drawing space
+canvas.width = 1000;
+canvas.height = 1200;
+
+const COLORS = {
+    petal: '#fccb00',
+    petalHighlight: '#ffdc0a',
+    center: '#4a2c2a',
+    centerGrid: '#3a1f1d',
+    stem: '#5fa06b',
+    leaf: '#3a7d44',
+    leafVeinDark: '#2e6636',
+    bow: '#4c25b7',
+    filler: '#ffffff',
+    bgPetal: '#fee599',
+    
+    // Improved wrapping paper colors based on premium beige folds
+    paperBase: '#e8e0d5',    
+    paperAccent: '#d6caba', 
+    paperShadow: '#c4b8a7'  
+};
+
+// Organic animation scaling
+const easeOutBack = (t) => {
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+};
+
+// --- Particles (Background Petals) ---
+class Particle {
+    constructor() { this.reset(); }
+    reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = -50 - Math.random() * 500;
+        this.s = 0.2 + Math.random() * 0.4;
+        this.v = 0.8 + Math.random() * 1.5;
+        this.angle = Math.random() * Math.PI * 2;
+        this.av = (Math.random() - 0.5) * 0.04;
+        this.opacity = 0.2 + Math.random() * 0.4;
+    }
+    update() {
+        this.y += this.v;
+        this.angle += this.av;
+        if(this.y > canvas.height + 50) this.reset();
+    }
+}
+const bgPetals = Array.from({length: 40}, () => new Particle());
+
+// --- Component: Complex, Layered Bouquet Wrap ---
+function drawLayeredWrapper(centerX, tieY, progress) {
+    if (progress < 0.1) return;
+    ctx.save();
+    ctx.globalAlpha = progress;
+    ctx.translate(centerX, tieY);
+    ctx.scale(1.0 + 0.1*(1-progress), 1.0 + 0.1*(1-progress)); // Slight grow effect
+
+    // Draw Wrapper in layers (Back to front)
+    
+    // Layer 1: The Deep V-cone (The main structural back)
+    ctx.fillStyle = COLORS.paperAccent;
+    ctx.beginPath();
+    ctx.moveTo(-180, -320); // Top left wing
+    ctx.lineTo(180, -320); // Top right wing
+    ctx.lineTo(100, 20); // Right stem gather point
+    ctx.lineTo(-100, 20); // Left stem gather point
+    ctx.closePath();
+    ctx.fill();
+
+    // Layer 2: Main Outer Fold (This layer creates the overlapping perspective)
+    ctx.fillStyle = COLORS.paperBase;
+    ctx.beginPath();
+    ctx.moveTo(-200, -300); // Top left outer fold
+    ctx.quadraticCurveTo(0, -380, 200, -300); // The soft arch over the flowers
+    ctx.lineTo(60, 50); // Sharp taper to tie point
+    ctx.quadraticCurveTo(0, 70, -60, 50); // Bottom point where stems meet
+    ctx.closePath();
+    ctx.fill();
+
+    // Layer 3: Contrast shadow for folds (Adds depth to paper)
+    ctx.strokeStyle = COLORS.paperShadow;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-180, -320); ctx.lineTo(-40, 40); // Defines the left outer paper fold
+    ctx.moveTo(180, -320); ctx.lineTo(40, 40); // Defines the right outer paper fold
+    ctx.stroke();
+
+    // Layer 4: Side Accent Folds
+    ctx.fillStyle = COLORS.paperShadow;
+    ctx.globalAlpha = 0.5 * progress;
+    ctx.beginPath();
+    ctx.moveTo(-200, -300); ctx.lineTo(-140, -150); ctx.lineTo(-60, 50); ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(200, -300); ctx.lineTo(140, -150); ctx.lineTo(60, 50); ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+}
+
+// --- Component: Vector Style components from original code ---
+function drawPetal(x, y, angle, scale, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(25 * scale, -40 * scale, 35 * scale, -100 * scale, 0, -130 * scale);
+    ctx.bezierCurveTo(-35 * scale, -100 * scale, -25 * scale, -40 * scale, 0, 0);
+    ctx.fill();
+    ctx.restore();
+}
+
+function drawDetailedLeaf(x, y, angle, scale, progress) {
+    if (progress < 0.1) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    const pScale = scale * progress;
+    
+    // Outer Leaf shape
+    ctx.fillStyle = COLORS.leaf;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(40 * pScale, -20 * pScale, 60 * pScale, -80 * pScale, 0, -120 * pScale);
+    ctx.bezierCurveTo(-60 * pScale, -80 * pScale, -40 * pScale, -20 * pScale, 0, 0);
+    ctx.fill();
+    
+    // Internal accents/veins
+    ctx.strokeStyle = COLORS.leafVeinDark;
+    ctx.lineWidth = 2 * pScale;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(5 * pScale, -50 * pScale, 0, -100 * pScale);
+    ctx.moveTo(0, -30 * pScale); ctx.lineTo(-20 * pScale, -50 * pScale);
+    ctx.moveTo(0, -50 * pScale); ctx.lineTo(20 * pScale, -70 * pScale);
+    ctx.stroke();
+    
+    ctx.restore();
+}
+
+function drawSunflowerHead(x, y, scale, time) {
+    const pCount = 20;
+    // Layered petals
+    for(let i=0; i<pCount; i++) {
+        drawPetal(x, y, (i * Math.PI * 2 / pCount) + (time * 0.0015), scale, COLORS.petal);
+        drawPetal(x, y, (i * Math.PI * 2 / pCount) + 0.1 + (time * 0.0015), scale * 0.9, COLORS.petalHighlight);
+    }
+    
+    // Textured Center with complex seed grid mask
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, 50 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = COLORS.center;
+    ctx.fill();
+    ctx.clip(); // Mask texture to center
+    
+    // Complex Geometric Seed Mesh
+    ctx.strokeStyle = COLORS.centerGrid;
+    ctx.lineWidth = 1 * scale;
+    const spacing = 10 * scale;
+    for(let i = -60; i <= 60; i += spacing) {
+        ctx.moveTo(x + i, y - 60); ctx.lineTo(x + i, y + 60);
+        ctx.moveTo(x - 60, y + i); ctx.lineTo(x + 60, y + i);
+    }
+    ctx.stroke();
+    ctx.restore();
+}
+
+function drawComplexBow(x, y, scale, progress) {
+    if (progress < 0.1) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale * easeOutBack(progress), scale * easeOutBack(progress));
+    ctx.fillStyle = COLORS.bow;
+    
+    // Knot
+    ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI * 2); ctx.fill();
+    
+    // Curved Loops
+    ctx.beginPath(); ctx.ellipse(-50, -10, 70, 30, -Math.PI/4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(50, -10, 70, 30, Math.PI/4, 0, Math.PI * 2); ctx.fill();
+    
+    // Stylized Split-end Tails
+    ctx.lineWidth = 20; ctx.strokeStyle = COLORS.bow;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-60, 100); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(60, 100); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-60, 100); ctx.lineTo(-40, 90); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(60, 100); ctx.lineTo(40, 90); ctx.stroke();
+    ctx.restore();
+}
+
+// --- Scene Setup ---
+const mainFlowers = [
+    {x: 500, y: 380, s: 0.95, d: 60},
+    {x: 350, y: 500, s: 0.75, d: 90},
+    {x: 650, y: 500, s: 0.75, d: 120},
+    {x: 320, y: 650, s: 0.65, d: 150},
+    {x: 680, y: 650, s: 0.65, d: 180},
+    {x: 500, y: 620, s: 0.75, d: 210}
+];
+
+const lushLeaves = [
+    {x: 430, y: 600, a: -Math.PI/3, s: 1.0, d: 130},
+    {x: 570, y: 600, a: Math.PI/3, s: 1.0, d: 140},
+    {x: 330, y: 720, a: -Math.PI/6, s: 0.8, d: 160},
+    {x: 670, y: 720, a: Math.PI/6, s: 0.8, d: 170}
+];
+
+let frame = 0;
+
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const centerX = 500, tieY = 950; // stems converge at tieY
+
+    // 1. Environmental Depth Particles
+    bgPetals.forEach(p => { p.update(); drawPetal(p.x, p.y, p.angle, p.s, COLORS.bgPetal); });
+
+    // 2. Main Scene Component: The Layered Wrapper (Drawn first as background)
+    drawLayeredWrapper(centerX, tieY, Math.min(1, frame / 70));
+
+    // 3. Converging Stems (Drawn after background but before foreground elements)
+    if (frame > 20) {
+        ctx.save();
+        ctx.strokeStyle = COLORS.stem;
+        ctx.lineCap = 'round';
+        mainFlowers.forEach(f => {
+            const g = Math.min(1, (frame - 20) / 80);
+            ctx.lineWidth = 12 * f.s;
+            ctx.beginPath();
+            ctx.moveTo(centerX, tieY);
+            // Stems converge at tieY
+            ctx.quadraticCurveTo(centerX + (f.x - centerX)*0.4, (tieY + f.y)/2, f.x, f.y);
+            ctx.stroke();
+        });
+        ctx.restore();
+    }
+
+    // 4. Main Detailed Leaves
+    lushLeaves.forEach(l => {
+        if(frame > l.d) { drawDetailedLeaf(l.x, l.y, l.a, l.s, Math.min(1, (frame - l.d) / 50)); }
+    });
+
+    // 5. Main Sunflowers blooming sequentially
+    mainFlowers.forEach(f => {
+        if(frame > f.d) {
+            const p = Math.min(1, (frame - f.d) / 60);
+            drawSunflowerHead(f.x, f.y, f.s * easeOutBack(p), frame);
+        }
+    });
+
+    // 6. Bow and Message (Top Layer)
+    if(frame > 280) {
+        const p = Math.min(1, (frame - 280) / 60);
+        // Bow draws directly on the tie point
+        drawComplexBow(centerX, tieY, 1, p);
+        msg.classList.add('visible');
+    }
+
+    frame++;
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+
+</body>
+</html>
